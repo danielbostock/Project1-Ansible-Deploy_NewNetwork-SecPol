@@ -1,0 +1,9 @@
+nvnetlab1_routers:
+  NV-NET-LAB1-R1:
+    GigabitEthernet2: "192.168.2.17"
+  NV-NET-LAB1-R2:
+    GigabitEthernet2: "192.168.2.18"
+  NV-NET-LAB1-R3:
+    GigabitEthernet2: "192.168.2.19"
+  NV-NET-LAB1-R4:
+    GigabitEthernet2: "192.168.2.20"

@@ -1,0 +1,99 @@
+---
+# Playbook Title: project1_stage2_deploy_l3interfaces.yml
+# Version: 1.0
+# Playbook created by Daniel Bostock
+# Contact me, with ideas to improve or to simply discuss - contact@danielbostock.com
+# NO COPYRIGHT
+# Feel free to re-use, I obviously take no responsibility for where and how you use it.
+
+
+- name: Project 1 - Stage 2 - Deploy L3 Intefaces
+# Define the target hosts here
+  hosts: nvnetlab1_routers
+  gather_facts: yes
+# Define the target interface here
+  vars:
+    Targ_L3Interface: GigabitEthernet2
+    Targ_L3Interface_Description: Downlink to LAB2-CS1
+
+
+  tasks:
+# Obtain and Display to the deployer what the current configuration is
+    - name: Obtain current running configuration on routers target interface
+      cli_command:
+          command: sh run int {{ Targ_L3Interface }}
+      register: current_target_int_conf
+    - name: Display current running configuration on routers target interfaces
+      debug:
+        msg: "{{ current_target_int_conf.stdout }}"
+
+# Obtain and Display to the deployer what they will be deploying
+    - name: Display new configuration before deploy
+      debug:
+        msg: "{{ lookup('template', 'l3_ipv4int_template.j2') }}"
+    - pause:
+        prompt: "Confirm that the target interface and new configuration is correct. Press enter to proceed, or Control+C to cancel."
+
+# Deployer has confirmed that configuration is good, the playbook will now begin deployment
+
+# Step 1 - Create and deploy based off Jinja2 template the L3 Interface
+    - name: Deploy L3 Interfaces
+      cli_config:
+        config: "{{ lookup('template', 'l3_ipv4int_template.j2') }}"
+      when: ansible_network_os == 'ios'
+
+# Step 2 - Now interfaces are created, enable and label with description accordingly
+    - name: Enable interface and provide Description
+      ios_interfaces:
+        config:
+          - name: "{{ Targ_L3Interface }}"
+            description: "{{ Targ_L3Interface_Description }}"
+            enabled: True
+      when: ansible_network_os == 'ios'
+
+#Let handlers do the final actions
+      notify:
+        - SH INT
+        - WR MEM
+        - SH RUN INT
+        - PING
+
+#Give time for the enable of interfaces to take effect
+    - pause:
+        seconds: 10
+        prompt: Waiting for interfaces to come up...
+
+
+#Obtain the information to display to the deployer with the handlers the configuration deployed
+    - name: Obtain updated IP address configuration
+      cli_command:
+        command: show ip int br | s {{ Targ_L3Interface }}
+      register: updated_ip_int
+    - name: Obtain NEW running configuation on interface
+      cli_command:
+        command: show run int {{ Targ_L3Interface }}
+      register: current_targl3int_runconf
+
+#Ping Interfaces
+    - name: Ping from new Interface to Palo Alto Edge Firewall
+      cli_command:
+        command: ping ip 10.255.255.1 source {{ Targ_L3Interface }}
+      register: current_targl3int_pingtest
+
+
+#Handlers here to display the vital post deployment info to the deployer
+
+  handlers:
+
+    - name: SH INT
+      debug:
+        msg: "{{ updated_ip_int.stdout }}"
+    - name: WR MEM
+      cli_command:
+          command: write memory
+    - name: SH RUN INT
+      debug:
+        msg: "{{ current_targl3int_runconf.stdout }}"
+    - name: PING
+      debug:
+        msg: "{{ current_targl3int_pingtest.stdout }}"

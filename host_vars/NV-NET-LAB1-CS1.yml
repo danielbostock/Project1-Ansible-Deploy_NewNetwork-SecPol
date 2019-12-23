@@ -1,7 +1,0 @@
-ansible_connection: network_cli
-ansible_network_os: nxos
-ansible_user: nvlabadmin
-ansible_password: 'HardPassword1987'
-ansible_become: yes
-ansible_become_method: enable
-ansible_become_password: 'HardPassword1987'

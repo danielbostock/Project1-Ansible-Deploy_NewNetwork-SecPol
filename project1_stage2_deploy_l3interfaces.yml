@@ -3,9 +3,6 @@
 # Version: 1.0
 # Playbook created by Daniel Bostock
 # Contact me, with ideas to improve or to simply discuss - contact@danielbostock.com
-# NO COPYRIGHT
-# Feel free to re-use, I obviously take no responsibility for where and how you use it.
-
 
 - name: Project 1 - Stage 2 - Deploy L3 Intefaces
 # Define the target hosts here

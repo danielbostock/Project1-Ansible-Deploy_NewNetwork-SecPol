@@ -3,10 +3,13 @@
 # Version: 1.0
 # Playbook created by Daniel Bostock
 # Contact me, with ideas to improve or to simply discuss - contact@danielbostock.com
+# NO COPYRIGHT
+# Feel free to re-use, I obviously take no responsibility for where and how you use it.
+
 
 - name: Project 1 - Stage 2 - Deploy L3 Intefaces
 # Define the target hosts here
-  hosts: nvnetlab1_routers
+  hosts: nvnetlab1_network_routers
   gather_facts: yes
 # Define the target interface here
   vars:
@@ -14,8 +17,37 @@
     Targ_L3Interface_Description: Downlink to LAB2-CS1
 
 
-  tasks:
+# --- Begin the pre-flight checks - backup, obtain current interface configuration, current running configurations ---
+
+# IF this is a new network device deployment these pre_tasks checks will often be unecessary and I recommend commenting or removing them.
+
+  pre_tasks:
+
+# Check if there are no current outstanding and not committed configuration changes
+
+    - pause:
+       seconds: 5
+       prompt: "Pre-flight checklists for deployment are beginning. This first step is checking if there are outstanding changes on the target device."
+
+    - name: Compare the current Startup vs Running configuration to confirm no outstanding changes
+      ios_config:
+          diff_against: intended
+          intended_config: "{{ lookup('file', '~/Google Drive/Ansible/Lab03-Network/pre_dep_backups/pre_dep_startup/{{ inventory_hostname }}_pre_dep_startup.cfg') }}"
+
+    - pause:
+       prompt: "Press enter to continue if there are no outstanding changes. If there are; proceed with caution and awareness, as this playbook will deploy these changes as well."
+
+# Begin backup, modify backup directory as required
+
+    - name: Backup of the current running config before deploy
+      ios_config:
+        backup: yes
+        backup_options:
+          dir_path: ~/Google Drive/Ansible/Lab03-Network/pre_dep_backups/pre_dep_running/
+        host: "{{ inventory_hostname }}"
+
 # Obtain and Display to the deployer what the current configuration is
+
     - name: Obtain current running configuration on routers target interface
       cli_command:
           command: sh run int {{ Targ_L3Interface }}
@@ -25,16 +57,19 @@
         msg: "{{ current_target_int_conf.stdout }}"
 
 # Obtain and Display to the deployer what they will be deploying
-    - name: Display new configuration before deploy
+
+    - name: Display new configuration before deploying
       debug:
         msg: "{{ lookup('template', 'l3_ipv4int_template.j2') }}"
     - pause:
         prompt: "Confirm that the target interface and new configuration is correct. Press enter to proceed, or Control+C to cancel."
 
-# Deployer has confirmed that configuration is good, the playbook will now begin deployment
+# --- End of pre-flight checklist ---
+
+  tasks:
 
 # Step 1 - Create and deploy based off Jinja2 template the L3 Interface
-    - name: Deploy L3 Interfaces
+    - name: Deploy the new L3 Interfaces to devices
       cli_config:
         config: "{{ lookup('template', 'l3_ipv4int_template.j2') }}"
       when: ansible_network_os == 'ios'
@@ -48,12 +83,6 @@
             enabled: True
       when: ansible_network_os == 'ios'
 
-#Let handlers do the final actions
-      notify:
-        - SH INT
-        - WR MEM
-        - SH RUN INT
-        - PING
 
 #Give time for the enable of interfaces to take effect
     - pause:
@@ -66,31 +95,31 @@
       cli_command:
         command: show ip int br | s {{ Targ_L3Interface }}
       register: updated_ip_int
+    - name: Show the updated IP address configuration
+      debug:
+        msg: "{{ updated_ip_int.stdout }}"
+
+
     - name: Obtain NEW running configuation on interface
       cli_command:
         command: show run int {{ Targ_L3Interface }}
-      register: current_targl3int_runconf
+      register: deployed_targl3int_runconf
+    - name: Display NEW running configuration on interface
+      debug:
+        msg: "{{ deployed_targl3int_runconf.stdout }}"
 
 #Ping Interfaces
-    - name: Ping from new Interface to Palo Alto Edge Firewall
-      cli_command:
-        command: ping ip 10.255.255.1 source {{ Targ_L3Interface }}
-      register: current_targl3int_pingtest
+    - name: Pinging from the new interfaces to the LAN edge uplink IP
+      net_ping:
+          dest: 10.255.255.1
+          source: "{{ Targ_L3Interface }}"
+          state: present
+      ignore_errors: yes
 
+    - pause:
+        prompt: "Review configuration, if configuration deployed is correct and no issues, press enter to commit to memory or ctrl-c to leave in running config."
 
-#Handlers here to display the vital post deployment info to the deployer
-
-  handlers:
-
-    - name: SH INT
-      debug:
-        msg: "{{ updated_ip_int.stdout }}"
-    - name: WR MEM
-      cli_command:
-          command: write memory
-    - name: SH RUN INT
-      debug:
-        msg: "{{ current_targl3int_runconf.stdout }}"
-    - name: PING
-      debug:
-        msg: "{{ current_targl3int_pingtest.stdout }}"
+#Now deployment is complete the configuration will be written to the memory (startup_config)
+    - name: Save the deployed configuration (running config) to the memory (pre_dep_startup config).
+      ios_config:
+          save_when: modified

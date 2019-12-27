@@ -1,5 +1,12 @@
 ---
 
+# Playbook Title: project1_stage2_deploy_coreswitc_vlans.yml
+# Version: 1.1
+# Playbook created by Daniel Bostock
+# Contact me, with ideas to improve or to simply discuss - contact@danielbostock.com
+# MIT License
+# Feel free to re-use, I obviously take no responsibility for where and how you use it.
+
 - name: Project 1 - Stage 3 - Deploy VLANs Interfaces & VLANs
 # Define the target hosts here
   hosts: nvnetlab1_switches_nxos
@@ -50,16 +57,23 @@
       debug:
         msg: "{{ current_target_int_conf.stdout }}"
 
-# Obtain and Display to the deployer what they will be deploying
+# Obtain and Display new configuration to the deployer what they will be deploying
 
-    - name: Display new configuration before deploying
+    - name: Display the conversion change that will take a L2 switch interface to a L3 switch interface
       debug:
-        msg: "{{ lookup('template', 'l3_vlan_ipv4int_template.j2') }}"
+        msg: "{{ lookup('template', 'project1_stage3_cs1_int-conf_template.j2') }}"
+    #- name: Display new configuration before deploying - ** DELETE IF SUCCESSFUL **
+     # debug:
+      #  msg: "{{ lookup('template', 'l3_vlan_ipv4int_template.j2') }}"
     - pause:
-        prompt: "Confirm that the target interface and new configuration is correct. Press enter to proceed, or Control+C to cancel."
+        prompt: "Confirm that the target interface(s) and new configuration is correct. Press enter to proceed, or Control+C to cancel."
 
 
   tasks:
+
+    - name: Modify the target device L2 switch interface to a L3 switch interface
+      nxos_config:
+           lines: "{{ lookup('template', 'project1_stage3_cs1_int-conf_template.j2') }}"
 
     - name: Deploy VLAN IDs
       nxos_vlans:
@@ -71,9 +85,9 @@
          - { vlan_id: 11, name: LAB1-DMZ-VLAN11 }
          - { vlan_id: 12, name: LAB1-DKR-VLAN12 }
 
-    - name: Deploy L3 VLAN Interfaces
-      cli_config:
-        config: "{{ lookup('template', 'l3_vlan_ipv4int_template.j2') }}"
+    #- name: Deploy L3 VLAN Interfaces
+     # cli_config:
+      #  config: "{{ lookup('template', 'project1_stage3_cs1_int-conf_template.j2') }}"
 
     - name: Configure Switch Ports to be access ports for the respective VLANs
       nxos_l2_interfaces:
@@ -122,10 +136,12 @@
            dest: 10.255.255.1
            source: "{{ item.source }}"
       with_items:
+        - { source: 192.168.2.21 }
         - { source: 10.10.10.1 }
         - { source: 10.10.11.1 }
         - { source: 10.10.12.1 }
       register: deployed_vlanip_ping_results
+      ignore_errors: yes
 
     - name: Show the Ping Results
       debug:

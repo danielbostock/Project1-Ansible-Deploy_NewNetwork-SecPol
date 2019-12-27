@@ -1,9 +1,9 @@
 ---
-# Playbook Title: project1_stage2_deploy_l3interfaces.yml
-# Version: 1.0
+# Playbook Title: project1_stage2_deploy_router_l3interfaces.yml
+# Version: 1.5
 # Playbook created by Daniel Bostock
 # Contact me, with ideas to improve or to simply discuss - contact@danielbostock.com
-# NO COPYRIGHT
+# MIT License
 # Feel free to re-use, I obviously take no responsibility for where and how you use it.
 
 
@@ -14,7 +14,7 @@
 # Define the target interface here
   vars:
     Targ_L3Interface: GigabitEthernet2
-    Targ_L3Interface_Description: Downlink to LAB2-CS1
+    Targ_L3Interface_Description: Downlink to LAB1-CS1
 
 
 # --- Begin the pre-flight checks - backup, obtain current interface configuration, current running configurations ---
@@ -84,13 +84,17 @@
       when: ansible_network_os == 'ios'
 
 
-#Give time for the enable of interfaces to take effect
+# Give time for the enable of interfaces to take effect
     - pause:
         seconds: 10
         prompt: Waiting for interfaces to come up...
 
+# --- Begin Post Verification Testing to configuration deployed as expected ---
 
-#Obtain the information to display to the deployer with the handlers the configuration deployed
+  post_tasks:
+
+
+# Obtain the information to display to the deployer with the handlers the configuration deployed
     - name: Obtain updated IP address configuration
       cli_command:
         command: show ip int br | s {{ Targ_L3Interface }}
@@ -108,7 +112,7 @@
       debug:
         msg: "{{ deployed_targl3int_runconf.stdout }}"
 
-#Ping Interfaces
+# Ping Interfaces
     - name: Pinging from the new interfaces to the LAN edge uplink IP
       net_ping:
           dest: 10.255.255.1
@@ -119,7 +123,12 @@
     - pause:
         prompt: "Review configuration, if configuration deployed is correct and no issues, press enter to commit to memory or ctrl-c to leave in running config."
 
-#Now deployment is complete the configuration will be written to the memory (startup_config)
+# Now deployment is complete the configuration will be written to the memory (startup_config)
     - name: Save the deployed configuration (running config) to the memory (pre_dep_startup config).
       ios_config:
           save_when: modified
+
+# Advising deployer of stage completion and moving to the next stage
+    - pause:
+        seconds: 5
+        prompt: Stage 2 - Deploy Router L3 Interfaces Completed... Loading Stage 3 - Deploy VLANs to Core Switch

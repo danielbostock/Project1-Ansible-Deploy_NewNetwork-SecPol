@@ -1,0 +1,7 @@
+{% for interface,ip in nvnetlab1_switches_nxos[inventory_hostname].items() %}
+interface {{ interface }}
+  ip address {{ip}} 255.255.255.0
+  ip router ospf 1 area 0.0.0.0
+  description LAB1-SRV-VLAN{{ interface }}
+  no shut
+{% endfor %}

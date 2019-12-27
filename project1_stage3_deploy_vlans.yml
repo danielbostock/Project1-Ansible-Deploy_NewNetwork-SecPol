@@ -1,0 +1,141 @@
+---
+
+- name: Project 1 - Stage 3 - Deploy VLANs Interfaces & VLANs
+# Define the target hosts here
+  hosts: nvnetlab1_switches_nxos
+  gather_facts: no
+# Define the VLAN ID's
+  vars:
+    LAB1_SERVER_VLAN: VLAN10
+    LAB1_DMZ_VLAN: VLAN11
+    LAB1_DOCKER_VLAN: VLAN12
+
+
+# --- Begin the pre-flight checks - backup, obtain current interface configuration, current running configurations ---
+
+# IF this is a new network device deployment these pre_tasks checks will often be unecessary and I recommend commenting or removing them.
+
+  pre_tasks:
+
+# Check if there are no current outstanding and not committed configuration changes
+
+    - pause:
+       seconds: 5
+       prompt: "Pre-flight checklists for deployment are beginning. This first step is checking if there are outstanding changes on the target device."
+
+    - name: Compare the current Startup vs Running configuration to confirm no outstanding changes
+      nxos_config:
+          diff_against: intended
+          intended_config: "{{ lookup('file', '~/Google Drive/Ansible/Lab03-Network/pre_dep_backups/pre_dep_startup/{{ inventory_hostname }}_pre_dep_startup.cfg') }}"
+
+    - pause:
+       prompt: "Press enter to continue if there are no outstanding changes. If there are; proceed with caution and awareness, as this playbook will deploy these changes as well."
+
+# Begin backup, modify backup directory as required
+
+    - name: Backup of the current running config before deploying changes to the device
+      nxos_config:
+        backup: yes
+        backup_options:
+          dir_path: ~/Google Drive/Ansible/Lab03-Network/pre_dep_backups/pre_dep_running/
+        host: "{{ inventory_hostname }}"
+
+# Obtain and Display to the deployer what the current configuration is
+
+    - name: Obtain list of configured L3 interefaces on the device
+      nxos_command:
+          commands: sh ip int br
+      register: current_target_int_conf
+    - name: Display the list of configured L3 interfaces on the device
+      debug:
+        msg: "{{ current_target_int_conf.stdout }}"
+
+# Obtain and Display to the deployer what they will be deploying
+
+    - name: Display new configuration before deploying
+      debug:
+        msg: "{{ lookup('template', 'l3_vlan_ipv4int_template.j2') }}"
+    - pause:
+        prompt: "Confirm that the target interface and new configuration is correct. Press enter to proceed, or Control+C to cancel."
+
+
+  tasks:
+
+    - name: Deploy VLAN IDs
+      nxos_vlans:
+        config:
+          - vlan_id: "{{ item.vlan_id }}"
+            name: "{{ item.name }}"
+      with_items:
+         - { vlan_id: 10, name: LAB1-SRV-VLAN10 }
+         - { vlan_id: 11, name: LAB1-DMZ-VLAN11 }
+         - { vlan_id: 12, name: LAB1-DKR-VLAN12 }
+
+    - name: Deploy L3 VLAN Interfaces
+      cli_config:
+        config: "{{ lookup('template', 'l3_vlan_ipv4int_template.j2') }}"
+
+    - name: Configure Switch Ports to be access ports for the respective VLANs
+      nxos_l2_interfaces:
+          config:
+            - name: "{{ item.name }}"
+              access:
+                vlan: "{{ item.vlan }}"
+      with_items:
+          - { name: Ethernet1/2, vlan: 10 }
+          - { name: Ethernet1/3, vlan: 11 }
+          - { name: Ethernet1/4, vlan: 12 }
+
+#Give time for the enable of interfaces to take effect
+    - pause:
+        seconds: 30
+        prompt: Waiting for interfaces to come up...
+
+# --- Begin Post Verification Testing to configuration deployed as expected ---
+
+  post_tasks:
+
+#Obtain the information to display to the deployer with the handlers the configuration deployed
+    - name: Obtain updated IP address configuration
+      nxos_command:
+        commands: show ip int br | i Vlan
+      register: updated_ip_int
+    - name: Show the updated IP address configuration
+      debug:
+        msg: "{{ updated_ip_int.stdout }}"
+
+
+    - name: Obtain NEW running configuation on the deployed device interfaces
+      nxos_command:
+        commands:
+           - show run int {{ LAB1_SERVER_VLAN }}
+           - show run int {{ LAB1_DMZ_VLAN }}
+           - show run int {{ LAB1_DOCKER_VLAN }}
+      register: deployed_targl3int_runconf
+    - name: Display NEW running configuration on interface
+      debug:
+        msg: "{{ deployed_targl3int_runconf.stdout }}"
+
+# Ping to test L3 Connectivity
+    - name: Test reachability to Edge Gateway using newly created vlan interfaces
+      nxos_ping:
+           dest: 10.255.255.1
+           source: "{{ item.source }}"
+      with_items:
+        - { source: 10.10.10.1 }
+        - { source: 10.10.11.1 }
+        - { source: 10.10.12.1 }
+      register: deployed_vlanip_ping_results
+
+    - name: Show the Ping Results
+      debug:
+        msg: "{{ deployed_vlanip_ping_results }}"
+
+
+    - pause:
+        prompt: "Review configuration & Connectivity Test Report, if configuration deployed is correct and no issues, press enter to commit to memory or ctrl-c to leave in running config."
+
+#Now deployment is complete the configuration will be written to the memory (startup_config)
+    - name: Save the deployed configuration (running config) to the memory (pre_dep_startup config).
+      nxos_config:
+          save_when: modified

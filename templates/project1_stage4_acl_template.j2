@@ -1,0 +1,6 @@
+{% for acls in lab1_cs1_acl %}
+ip access-list {{acls.name}}
+{%  for acl_ace in acls.acl_aces %}
+ {{acl_ace.ACE}}
+{%  endfor %}
+{% endfor %}

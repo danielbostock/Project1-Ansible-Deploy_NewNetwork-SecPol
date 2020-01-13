@@ -1,0 +1,4 @@
+{% for access-list,seq in nvnetlab1_switches_nxos[ACLS].items() %}
+ip access-list {{ access-list }}
+  {{seq}}
+{% endfor %}

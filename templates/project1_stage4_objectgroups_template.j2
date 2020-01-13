@@ -1,0 +1,12 @@
+{% for object in lab1_cs1_objects_addr %}
+object-group ip address {{object.name}}
+{%  for network in object.networks %}
+ {{network.address}}
+{%  endfor %}
+{% endfor %}
+{% for object in lab1_cs1_objects_port %}
+object-group ip port {{object.name}}
+{%  for protocol in object.protocols %}
+ eq {{protocol.port}}
+{%  endfor %}
+{% endfor %}

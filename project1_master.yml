@@ -1,0 +1,16 @@
+---
+
+- name: Project 1 - Ansible - Deploy New Network & Network Security Policies - Master Playbook
+  hosts: nvnetlab1_switches_nxos, nvnetlab1_network_routers
+  gather_facts: no
+
+# --- Playbooks are defined here in the order they need to be deployed. Refer to each specific playbook for individual
+# configuration or changes.
+
+# Stage 1: Deploy L3 Network Interfaces to the LAB1 Routers
+
+- import_playbook: project1_stage2_deploy_router_l3interfaces.yml
+
+# Stage 2: Deploy VLANs and L3 VLAN SVI's on LAB Core Switch
+
+- import_playbook: project1_stage3_deploy_coreswitch_vlans.yml

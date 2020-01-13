@@ -1,0 +1,21 @@
+lab1_cs1_objects_port:
+    - port_obj_grp1:
+      name: LAB1-SRV-MGMT_PORTS
+      protocols:
+         - port: 22
+         - port: 443
+         - port: 123
+         - port: 53
+    - port_obj_grp2:
+      name: LAB1-SECURE-WEB_PORTS
+      protocols:
+         - port: 443
+         - port: 53
+         - port: 20
+    - port_obj_grp3:
+      name: LAB1-DOCKER-MC_PORTS
+      protocols:
+         - port: 25565
+         - port: 25566
+         - port: 25567
+         - port: 25568

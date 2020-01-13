@@ -1,0 +1,81 @@
+---
+
+# Playbook Title: project1_stage4_deploy_netsecurity.yml
+# Version: 1.0
+# Playbook created by Daniel Bostock
+# Contact me, with ideas to improve or to simply discuss - contact@danielbostock.com
+# MIT License
+
+- name: Project 1 - Stage 4 - Deploy Network Security to Core Switches
+  hosts: nvnetlab1_switches_nxos
+  gather_facts: no
+  vars_files:
+   - ./vars/lab1_cs1_objects_addr.yml
+   - ./vars/lab1_cs1_objects_port.yml
+   - ./vars/lab1_cs1_acl.yml
+
+# --- Begin the pre-flight checks - backup, obtain current interface configuration, current running configurations ---
+
+# IF this is a new network device deployment these pre_tasks checks will often be unecessary and I recommend commenting or removing them.
+
+  pre_tasks:
+
+# Check if there are no current outstanding and not committed configuration changes
+
+    - pause:
+       seconds: 2
+       prompt: "Pre-flight checklists for deployment are beginning. This first step is checking if there are outstanding changes on the target device."
+
+    - name: Compare the current Startup vs Running configuration to confirm no outstanding changes
+      nxos_config:
+          diff_against: intended
+          intended_config: "{{ lookup('file', '~/Documents/Training/Ansible/Lab03-Network/pre_dep_backups/pre_dep_startup/{{ inventory_hostname }}_pre_dep_startup.cfg') }}"
+
+    - pause:
+       prompt: "Press enter to continue if there are no outstanding changes. If there are; proceed with caution and awareness, as this playbook will deploy these changes as well."
+
+# Begin backup, modify backup directory as required
+
+    - name: Backup of the current running config before deploying changes to the device
+      nxos_config:
+        backup: yes
+        backup_options:
+          dir_path: ~/Documents/Training/Ansible/Lab03-Network/pre_dep_backups/pre_dep_startup/
+        host: "{{ inventory_hostname }}"
+
+# Obtain and Display new configuration to the deployer to show the configuration that they will be deploying
+
+    - name: Display Task - Creat Object-groups - Address & Port object-groups
+      debug:
+        msg: "{{ lookup('template', './templates/project1_stage4_addrobjects_template.j2') }}"
+    - pause:
+        prompt: "Confirm that all ACL Address Objects are correct... Press CTRL+C to begin abort sequence."
+    - name: Display Task - Create Access Control Lists
+      debug:
+        msg: "{{ lookup('template', './templates/project1_stage4_acl_template.j2') }}"
+    - pause:
+        prompt: "Confirm that all Access Control Lists and their respective entries are correct... Press CTRL+C to begin abort sequence."
+
+# Pre-flight checks completed, the deployment portion will now begin.
+
+# --- Begin configuration deployment tasks ---
+
+  tasks:
+    - name: Creat Object-groups - Address & Port object-groups
+      nxos_config:
+           lines: "{{ lookup('template', './templates/project1_stage4_objectgroups_template.j2') }}"
+
+    - name: Create Access Control Lists
+      nxos_config:
+           lines: "{{ lookup('template', './templates/project1_stage4_acl_template.j2') }}"
+
+# --- Tasks completed ---
+
+# --- Begin Post Tasks ---
+
+  post_tasks:
+#Now deployment is complete the configuration will be written to the memory (startup config)
+    - name: Save the deployed configuration (running config) to the memory (startup config).
+      nxos_config:
+        save_when: modified
+

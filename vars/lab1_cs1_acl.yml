@@ -1,0 +1,33 @@
+lab1_cs1_acl:
+    - access_control_list1:
+      name: NV-SRV-VLAN_ACL
+      acl_aces:
+        - ACE: 10 permit udp addrgroup LAB1-NTP_ADDR eq ntp 10.10.10.0/24 eq ntp
+        - ACE: 11 permit tcp addrgroup NV-WAN_ADDR 10.10.10.0/24 portgroup LAB1-SRV-MGMT_PORTS
+        - ACE: 12 permit udp addrgroup LAB1-NTP-ALLOW eq ntp 10.10.10.4/32 eq ntp
+        - ACE: 20 permit tcp any portgroup LAB1-SECURE-WEB_PORTS 10.10.10.0/24
+        - ACE: 21 permit udp any eq domain 10.10.10.0/24
+        - ACE: 23 permit tcp any 10.10.10.0/24 established
+        - ACE: 200 deny ip addrgroup NV-DMZ_ADDR 10.10.10.0/24
+        - ACE: 300 permit icmp addrgroup NV-WAN_ADDR 10.10.10.0/24
+    - access_control_list2:
+      name: NV-DMZ-VLAN_ACL
+      acl_aces:
+         - ACE: 10 permit udp 10.10.10.4/32 10.10.11.0/24 eq ntp
+         - ACE: 11 permit tcp addrgroup NV-MGMT_ADDR 10.10.11.0/24 portgroup LAB1-SRV-MGMT_PORTS
+         - ACE: 20 permit tcp any portgroup NV-SECURE-WEB_PORTS 10.10.11.10/32
+         - ACE: 21 permit udp any eq domain 10.10.11.0/24
+         - ACE: 22 permit tcp any 10.10.11.0/24 established
+         - ACE: 50 permit udp addrgroup DKR-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS addrgroup NV-WEB-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS
+         - ACE: 51 permit tcp addrgroup DKR-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS addrgroup NV-WEB-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS
+         - ACE: 300 permit icmp addrgroup NV-MGMT_ADDR 10.10.11.0/24
+    - access_control_list3:
+      name: LAB1-DOCKER-MC_PORTS
+      acl_aces:
+         - ACE: 10 permit udp 10.10.10.4/32 10.10.12.0/24 eq ntp
+         - ACE: 11 permit tcp addrgroup NV-MGMT_ADDR 10.10.11.0/24 portgroup LAB1-SRV-MGMT_PORTS
+         - ACE: 20 permit tcp any portgroup LAB1-SECURE-WEB_PORTS 10.10.12.10/32
+         - ACE: 21 permit udp any eq domain 10.10.12.0/24
+         - ACE: 22 permit tcp any 10.10.12.0/24 established
+         - ACE: 50 permit udp addrgroup DMZ-WEB-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS addrgroup DMZ-WEB-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS
+         - ACE: 51 permit tcp addrgroup DMZ-WEB-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS addrgroup DMZ-WEB-HOSTS_ADDR portgroup LAB1-DOCKER-MC_PORTS

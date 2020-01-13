@@ -1,0 +1,39 @@
+lab1_cs1_objects_addr:
+    - addr_obj_grp1:
+      name: NV-DMZ_ADDR
+      networks:
+         - address: 10.10.11.0/24
+         - address: 10.1.11.0/24
+    - addr_obj_grp2:
+      name: LAB1-NTP_ADDR
+      networks:
+         - address: 10.10.11.0/24
+         - address: 10.10.12.0/24
+         - address: 192.168.255.22/32
+    - addr_obj_grp3:
+      name: NV-MGMT_ADDR
+      networks:
+         - address: 10.0.99.0/24
+         - address: 10.1.99.0/24
+         - address: 10.0.0.30/32
+    - addr_obj_grp4:
+      name: NV-NTP_ADDR
+      networks:
+         - address: 10.0.8.2/32
+         - address: 10.0.8.5/32
+         - address: 10.10.10.4/32
+    - addr_obj_grp5:
+      name: NV-WAN_ADDR
+      networks:
+         - address: 10.0.0.0/8
+         - address: 10.0.0.30/32
+         - address: 192.168.0.0/16
+         - address: 172.16.0.0/12
+    - addr_obj_grp6:
+      name: NV-DKR-HOSTS_ADDR
+      networks:
+         - address: 10.10.12.10/32
+    - addr_obj_grp7:
+      name: NV-WEB-HOSTS_ADDR
+      networks:
+         - address: 10.10.11.10/32

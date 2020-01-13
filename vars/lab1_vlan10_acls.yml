@@ -1,0 +1,12 @@
+---
+
+LAB1-ACLS:
+  - acl:
+     - 10 permit udp addrgroup NVNTP eq ntp 10.10.10.0/24 eq ntp
+     - 11 permit tcp addrgroup NVWAN 10.10.10.0/24 portgroup MGMT
+     - 12 permit udp addrgroup LAB1-NTP-ALLOW eq ntp 10.10.10.4/32 eq ntp
+     - 20 permit tcp any portgroup SECURE-WEB 10.10.10.0/24
+     - 21 permit udp any eq domain 10.10.10.0/24
+     - 23 permit tcp any 10.10.10.0/24 established
+     - 200 deny ip addrgroup DENY_DMZ_NETS 10.10.10.0/24
+     - 300 permit icmp addrgroup NVWAN 10.10.10.0/24
